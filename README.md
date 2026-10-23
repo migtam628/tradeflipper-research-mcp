@@ -1,8 +1,12 @@
-# TradeFlipper Research MCP v0.2.0
+# TradeFlipper Research MCP v0.3.0
 
-**Local, private, research-only MCP service for Claude Code and compatible agents.**
+**Local, research-only MCP service for Claude Code and compatible agents.**
 
-This release **upgrades the existing four v0.1 tools** without changing their names or required parameters:
+v0.3 adds the read-only `opportunity_snapshot` MCP tool, scheduled market research, atomic snapshots and a loopback-only Overview API contract; see [docs/OPPORTUNITY_AGENT.md](docs/OPPORTUNITY_AGENT.md). **Research only; no order execution.**
+
+The standalone MCP requires the companion TradeFlipper backend; `main` includes the launcher fix so data and `.env` resolve from the TradeFlipper checkout.
+
+This release **preserves the existing four v0.1 tools** without changing their names or required parameters:
 
 | MCP tool | Purpose |
 |---|---|
@@ -10,6 +14,7 @@ This release **upgrades the existing four v0.1 tools** without changing their na
 | `analyze_stock` | One stock, completed candles, technical alignment and deterministic strategy triggers |
 | `screen_options` | Long call/put chain filter, liquidity comparison, cost, breakeven and moneyness |
 | `paper_portfolio` | Read-only local SQLite positions, signals and closed trades; reports execution venue |
+| `opportunity_snapshot` | Read latest or named persisted research shortlist for Overview; does not trigger scans |
 
 No orders, broker configuration updates, or automatic trading actions are exposed.
 
@@ -113,8 +118,9 @@ cd ~/tradeflipper-research-mcp
 .venv-mcp/bin/python -m compileall -q mcp_server
 ```
 
-## Next steps (not included in v0.2)
+## Future improvements
 
 1. Broker/entitled option-chain adapter with verified quote timestamps and Greeks.
-2. Earnings/calendar catalyst flags and explicit max-staleness rejection.
-3. Reproducible, paper-only option payoff/backtest analysis and reviewable AI market-wide shortlists.
+2. Earnings/calendar catalyst flags and careful max-staleness handling for unknown option quotes.
+3. Authenticated TradeFlipper Overview integration; the current local HTTP snapshot API is loopback-only and unauthenticated.
+4. Paper-only option payoff/backtest analysis and live-server validation of `paper_portfolio` / watchlist against the initialized backend DB.
