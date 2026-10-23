@@ -1,0 +1,11 @@
+[Unit]
+Description=Run TradeFlipper opportunity scan on weekdays during US market hours
+
+[Timer]
+# Times are server local time; adjust for your zone. Stale-data rejection discards
+# results on holidays/closed sessions, so the schedule need not model the exchange calendar.
+OnCalendar=Mon..Fri 09..16:00,30
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -34,8 +34,10 @@ from app.engine import complete_bars  # noqa: E402
 from app.indicators import add_indicators  # noqa: E402
 from app.models import Account, ExecutionSetting, Position, SignalRecord, Trade, WatchlistItem  # noqa: E402
 from app.strategies import STRATEGIES  # noqa: E402
+from .opportunity import to_overview_payload  # noqa: E402
 from .research import (completed_stock_daily_bars, number, option_candidates, stock_metrics,
                        symbols_from_text)  # noqa: E402
+from .snapshot_store import SnapshotStore  # noqa: E402
 
 log = logging.getLogger(__name__)
 mcp = MCPServer('TradeFlipper Research — read only')
@@ -103,23 +105,9 @@ def analyze_stock(symbol: str, mode: str = 'swing') -> dict:
     return _evaluate(symbol, df, mode, interval, source, quality)
 
 
-@mcp.tool()
-def screen_stocks(mode: str = 'swing', scope: str = 'watchlist',
-                  symbols: str = '', max_symbols: int = 25, top_n: int = 10,
-                  universe_offset: int = 0) -> dict:
-    """Rank stock candidates for DAY or SWING research; never place orders.
-
-    scope=watchlist uses the saved TradeFlipper watchlist; scope=movers uses
-    market gainers/most-active; scope=universe samples a rotating/batched slice
-    of the S&P 500 universe (use universe_offset for the next batch).
-    An explicit comma-separated symbols argument overrides scope (up to 40).
-    These are technical rankings, not predicted returns or guaranteed winners.
-    """
-    if mode not in ('day', 'swing') or scope not in ('watchlist', 'movers', 'universe'):
-        raise ValueError('Invalid mode or scope')
-    if not 1 <= max_symbols <= 40 or not 1 <= top_n <= 20 or universe_offset < 0:
-        raise ValueError('max_symbols=1..40, top_n=1..20, universe_offset>=0')
-    notes = []
+def _resolve_pool(scope: str, symbols: str = '') -> tuple[list[str], list[str]]:
+    """Resolve the raw symbol pool for a scope; shared by screen_stocks and the v0.3 agent."""
+    notes: list[str] = []
     if symbols.strip():
         pool = symbols_from_text(symbols)
     elif scope == 'watchlist':
@@ -140,6 +128,26 @@ def screen_stocks(mode: str = 'swing', scope: str = 'watchlist',
         from app.universe import load_universe
         pool = list(load_universe())
         notes.append('A single request samples only one bounded universe batch; rotate universe_offset.')
+    return pool, notes
+
+
+@mcp.tool()
+def screen_stocks(mode: str = 'swing', scope: str = 'watchlist',
+                  symbols: str = '', max_symbols: int = 25, top_n: int = 10,
+                  universe_offset: int = 0) -> dict:
+    """Rank stock candidates for DAY or SWING research; never place orders.
+
+    scope=watchlist uses the saved TradeFlipper watchlist; scope=movers uses
+    market gainers/most-active; scope=universe samples a rotating/batched slice
+    of the S&P 500 universe (use universe_offset for the next batch).
+    An explicit comma-separated symbols argument overrides scope (up to 40).
+    These are technical rankings, not predicted returns or guaranteed winners.
+    """
+    if mode not in ('day', 'swing') or scope not in ('watchlist', 'movers', 'universe'):
+        raise ValueError('Invalid mode or scope')
+    if not 1 <= max_symbols <= 40 or not 1 <= top_n <= 20 or universe_offset < 0:
+        raise ValueError('max_symbols=1..40, top_n=1..20, universe_offset>=0')
+    pool, notes = _resolve_pool(scope, symbols)
     clean = list(dict.fromkeys(s for s in pool if isinstance(s, str) and len(s) <= 10
                                and s and s[0].isalpha() and all(c.isalnum() or c in '.-' for c in s)))
     selected = clean[universe_offset:universe_offset + max_symbols] if scope == 'universe' and not symbols.strip() \
@@ -275,6 +283,20 @@ def paper_portfolio(limit: int = 10) -> dict:
                 'closed_trades': [{'symbol': t.symbol, 'side': t.side, 'pnl': t.pnl,
                                    'exit_reason': t.exit_reason} for t in history],
                 'generated_at_utc': datetime.now(UTC).isoformat()}
+
+
+@mcp.tool()
+def opportunity_snapshot(snapshot_id: str = '') -> dict:
+    """Read the latest (or a named) PERSISTED opportunity snapshot; performs no scan or network call.
+
+    Returns the Overview payload: stock technical score, confirmed rule triggers and option
+    liquidity as separate blocks. Expired snapshots return no items. Scans are produced only by
+    the scheduled `python -m mcp_server.opportunity_agent run` job. Never places orders.
+    """
+    store = SnapshotStore()
+    if snapshot_id.strip():
+        return store.load(snapshot_id.strip())
+    return to_overview_payload(store.latest())
 
 
 if __name__ == '__main__':

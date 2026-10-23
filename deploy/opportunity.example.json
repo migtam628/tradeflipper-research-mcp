@@ -1,0 +1,8 @@
+{
+  "modes": ["swing"],
+  "scope": "universe",
+  "batch_size": 40,
+  "top_n": 10,
+  "options": {"enabled": true, "require_trigger": false, "min_technical_score": 70, "max_underlyings": 3},
+  "stale": {"max_daily_age_days": 4, "max_intraday_age_minutes": 40}
+}

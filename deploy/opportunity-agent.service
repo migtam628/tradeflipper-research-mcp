@@ -1,0 +1,7 @@
+[Unit]
+Description=TradeFlipper read-only opportunity scan (no order execution)
+
+[Service]
+Type=oneshot
+ExecStart=%h/tradeflipper-research-mcp/deploy/run_opportunity_agent.sh run --config %h/.config/tradeflipper-research/opportunity.json
+Nice=10
