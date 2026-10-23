@@ -59,3 +59,11 @@ def test_options_exclude_wide_spreads_and_expensive_or_illiquid_contracts():
 def test_nonfinite_data_rejected():
     assert number(float('nan')) is None
     assert number(float('inf')) is None
+
+
+def test_launcher_runs_from_tradeflipper_checkout_without_cwd_on_sys_path():
+    """Regression: cd'ing into this clone made the backend resolve ./data and .env there."""
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[1] / 'run.sh').read_text()
+    assert 'cd "$TF_HOME"' in text and 'cd "$ROOT"' not in text
+    assert 'PYTHONPATH="$ROOT' in text and 'exec "$PYTHON" -P -m mcp_server.server' in text
