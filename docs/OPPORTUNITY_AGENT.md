@@ -37,6 +37,10 @@ score, then symbol (`rank_basis` in each mode block). `validate_snapshot` reject
 `status`: `ok`, `partial` (some stale/errored symbols), `empty` (no usable candidates).
 `expires_at_utc` = generated + TTL (`ttl_minutes_swing` 360, `ttl_minutes_day` 15; shortest TTL of the modes run).
 
+## Important: Docker database is not the host SQLite file
+
+**Docker database separation (confirmed from companion repo):** `tradeFlipper/docker-compose.yml` sets `DATABASE_URL=sqlite:////app/data/tradeflipper.db` inside a named volume `tradeflipper_data`, whereas host-side MCP defaults to `~/tradeFlipper/data/tradeflipper.db`. These are NOT the same file. The previously reported 0-byte host file does not prove the Docker DB is uninitialized. Do not create a second host DB and mistake it for the live portfolio. Track integration at [issue #3](https://github.com/migtam628/tradeflipper-research-mcp/issues/3); verify the active container DB on the owner's host before enabling portfolio/watchlist scope.
+
 ## Running and scheduling
 
 ```bash

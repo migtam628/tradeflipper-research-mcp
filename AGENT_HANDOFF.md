@@ -147,3 +147,9 @@ Keep this file concise, factual, and current. If agent notes disagree, prefer ch
 - **Deployment outstanding:** `~/tradeflipper-research-mcp` must pull `main`, its virtualenv must be installed/tested, and Claude Code MCP registration must point to its `mcp_server/run.sh` rather than the old embedded copy. No evidence a timer is installed; enable it only after successful one-shot snapshot review.
 - **Known limits:** Yahoo option bid/ask quote timestamps/Greeks unavailable; options scores are not trading probabilities; no verified live rule-trigger occurrence; Overview frontend integration and authenticated HTTP access remain separate reviewed work.
 - **Next steps:** update checkout; verify DB and 5 MCP tools; run and inspect a one-shot snapshot; then optionally enable the timer. Preserve this record when switching Claude/Codex/Gemini/GPT.
+
+## 12. Outstanding database integration blocker
+
+**Docker database separation (confirmed from companion repo):** `tradeFlipper/docker-compose.yml` sets `DATABASE_URL=sqlite:////app/data/tradeflipper.db` inside a named volume `tradeflipper_data`, whereas host-side MCP defaults to `~/tradeFlipper/data/tradeflipper.db`. These are NOT the same file. The previously reported 0-byte host file does not prove the Docker DB is uninitialized. Do not create a second host DB and mistake it for the live portfolio. Track integration at [issue #3](https://github.com/migtam628/tradeflipper-research-mcp/issues/3); verify the active container DB on the owner's host before enabling portfolio/watchlist scope.
+
+Next agent: fix via a separately reviewed, read-only active-container DB adapter or authenticated TradeFlipper API endpoint, explicitly preventing empty local SQLite fallback. GitHub Actions alone cannot verify the owner's Docker volume.
