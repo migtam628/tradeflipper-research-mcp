@@ -111,7 +111,9 @@ For existing *embedded* installs, run the tests from `~/tradeFlipper` and verify
 - A v0.2 ZIP was assembled and its offline regression suite reported **14 passed**.
 - User successfully connected the earlier `tradeflipper-research` MCP in Claude Code and obtained stock and AAPL options screens from v0.1.
 - Those v0.1 reports showed unfinished daily candles scored as if final, misleading all-100 options liquidity scores, zero-spread quotes and missing Greeks; v0.2 specifically addresses data integrity and honest scoring.
-- A standalone private GitHub repo was created to house this version. GitHub push and independent installed-server smoke tests should be verified explicitly.
+- The full v0.2 source, tests, docs, launcher, GitHub test workflow, and agent entrypoints **are pushed to this private repository's `main` branch**, verified through its Git tree at commit `4e7353f06fbfd985aef08bfe37de97d64d866a1b`.
+- Locally reviewed v0.2 package: `python -m pytest -q mcp_server/tests` → **14 passed**. The exact GitHub blobs for `server.py`, `research.py`, and both test files match the local source.
+- No GitHub Actions workflow run was returned at this check; do not claim CI passed. Independent v0.2 Claude connection + live tool smoke tests on the owner's Ubuntu server **remain unverified**.
 - **No orders were requested or placed by this research MCP.**
 
 Keep this file concise, factual, and current. If agent notes disagree, prefer checked source + test output over conversational claims.
