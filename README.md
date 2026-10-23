@@ -23,6 +23,14 @@ No orders, broker configuration updates, or automatic trading actions are expose
 
 **Portfolio semantics.** `paper_portfolio` reports the locally stored active execution venue. If Alpaca or Webull is selected, recorded positions may reflect broker paper fills and may be stale. This tool does **not** retrieve the live broker account.
 
+## v0.3 (draft): scheduled opportunity discovery
+
+A read-only scheduled agent (`mcp_server/opportunity_agent.py`) scans a configurable universe, rejects stale data,
+ranks day/swing candidates, qualifies long options and persists structured snapshots for TradeFlipper Overview. Technical
+score, confirmed rule triggers and option liquidity stay separate. A fifth read-only MCP tool, `opportunity_snapshot`,
+returns the latest persisted snapshot (no scan). See [docs/OPPORTUNITY_AGENT.md](docs/OPPORTUNITY_AGENT.md) for the pipeline,
+scheduling and the Overview API contract. It does not execute orders.
+
 ## Install as a standalone GitHub repository
 
 The MCP is **read-only**, but it imports the established TradeFlipper research strategies,

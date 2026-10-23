@@ -1,9 +1,9 @@
 # AGENT_HANDOFF.md — TradeFlipper Research MCP
 
 **Project:** `migtam628/tradeflipper-research-mcp` (private)  
-**Release:** v0.2.0  
+**Release:** v0.2.0 on `main`; v0.3.0 opportunity agent is a **draft PR** (branch `feature/v0.3-opportunity-agent`, not merged)  
 **Last reviewed:** 2026-10-23  
-**Status:** Local offline tests: **14 passed**. Claude Code connected to v0.1 previously; v0.2 standalone installation / live market calls are **not yet independently verified**.
+**Status:** Local offline tests: **14 passed on `main`; 47 passed on the v0.3 branch**. Claude Code connected to v0.1 previously; v0.2 standalone installation / live market calls are **not yet independently verified**.
 
 This document is the **persistent handoff contract for any AI agent/model** (Claude Code, Codex, GPT, Gemini, etc.). Read it **before making code changes**, and update it **after each meaningful work session**. Do not treat an older agent's statements or a passing connection check as runtime proof.
 
@@ -30,6 +30,9 @@ Build a private **research-only** Model Context Protocol server for the TradeFli
 | `analyze_stock` | Analyze one symbol using completed bar inputs + TradeFlipper's deterministic signals | None |
 | `screen_options` | Read long call/put options chains; premium/expiry/volume/OI/spread screens; liquidity + economics | None |
 | `paper_portfolio` | Read the **local** TradeFlipper SQLite paper records and report execution venue | None |
+| `opportunity_snapshot` (v0.3 branch) | Return the latest/named **persisted** opportunity snapshot (Overview payload); no scan | None |
+
+The scheduled scanner is the CLI `python -m mcp_server.opportunity_agent run` (one-shot, for systemd/cron). It writes snapshot files only. See `docs/OPPORTUNITY_AGENT.md`.
 
 Preserve these tool names and argument compatibility across agent migrations. Add new fields with documented semantics; avoid changing output meaning silently. Never log, serialize or commit API keys, account IDs, tokens, personal data, databases or secrets.
 
@@ -51,7 +54,8 @@ Preserve these tool names and argument compatibility across agent migrations. Ad
 5. **No fabricated risk statistics:** absent Greeks, earnings-event dates or execution probabilities are explicitly missing.
 6. **Isolation:** do not print credentials or secrets; do not include `.env`, private keys, SQLite DBs, data caches or venvs in commits.
 7. **No implied autonomy:** connection to MCP means a client can call tools; it does **not** mean the agent is scheduled to scan, trained to select winners or authorized to trade.
-8. **Backend safety:** do not bypass or dilute protections in `tradeFlipper` while improving discovery.
+8. **Separate evidence (v0.3):** `stock_technical` score, `rule_triggers` and option `liquidity_score` are separate blocks; never add a combined/blended score. Expired snapshots must yield no Overview items.
+9. **Backend safety:** do not bypass or dilute protections in `tradeFlipper` while improving discovery.
 
 ## 6. Verification commands
 
@@ -75,8 +79,8 @@ For existing *embedded* installs, run the tests from `~/tradeFlipper` and verify
 1. Verify the standalone `run.sh` and `mcp.server` import/runtime against installed `mcp>=2,<3`, plus Claude Code smoke tests; fix incompatibilities before calling the deployment healthy.
 2. Improve option-chain data with licensed timestamped bid/ask and Greeks; Yahoo options are **not executable quotes**.
 3. Add earnings/calendar/news-event gates and max-staleness handling for unknown/old data.
-4. Add a broad-universe discovery scheduler with human-readable outcomes **without execution permission**, keeping rate limits and per-source licensing in mind.
-5. Integrate reviewable candidate lists into TradeFlipper Overview only via an explicit, separately tested integration.
+4. ~~Add a broad-universe discovery scheduler~~ **Implemented on the v0.3 draft branch** (offline-tested + one live smoke run); the timer is **not installed** anywhere and must be reviewed/enabled by the owner. Rate limits/licensing still apply.
+5. Integrate reviewable candidate lists into TradeFlipper Overview only via an explicit, separately tested integration. The v0.3 API contract exists; **no frontend/backend integration has been made**.
 6. Add contract-level payoff/expiry modeling and tests; avoid presenting liquidity scores as expected profit.
 7. Ensure all build/test workflow jobs **actually execute**. Earlier GitHub Actions runs in the companion repo sometimes failed before test steps; no green result should be inferred from that.
 
@@ -117,3 +121,18 @@ For existing *embedded* installs, run the tests from `~/tradeFlipper` and verify
 - **No orders were requested or placed by this research MCP.**
 
 Keep this file concise, factual, and current. If agent notes disagree, prefer checked source + test output over conversational claims.
+
+## 10. Outgoing-agent record — v0.3 opportunity agent session
+
+- **UTC timestamp and agent/model:** 2026-10-23 ~19:00Z, Claude Code (Claude Sonnet 5.5).
+- **Repository / branch / HEAD SHA:** `migtam628/tradeflipper-research-mcp`, branch `feature/v0.3-opportunity-agent`, based on `main` @ `2e33828`; head SHA = the PR head (a commit cannot contain its own SHA).
+- **User goal & constraints:** read-only scheduled opportunity discovery (configurable universe, day/swing ranking, option qualification, stale rejection, persisted snapshots, Overview API contract); keep technical score / rule triggers / option liquidity separate; no orders, no broker or config changes; tests, docs, draft PR.
+- **Changes committed:** `mcp_server/opportunity.py` (pipeline, config, stale rejection, validation, Overview payload), `snapshot_store.py`, `overview_api.py`, `opportunity_agent.py`, `server.py` (`_resolve_pool` refactor + `opportunity_snapshot` tool), `deploy/*`, `docs/OPPORTUNITY_AGENT.md`, `tests/test_v03.py`, README/CHANGELOG/this file.
+- **Tests executed and exact results:** `pytest -q mcp_server/tests` → **47 passed** both in the full TradeFlipper venv (Python 3.14.4) and in a clean venv with only pandas+pytest (Python 3.14.4, no `mcp`; matches the CI install set). `compileall` OK. **Python 3.12 (the CI version) was not run locally.** GitHub Actions has not been observed for this branch.
+- **Runtime/Claude MCP connection verification:** Over stdio with the `mcp` client, the server lists 5 tools (4 original + `opportunity_snapshot`); `opportunity_snapshot` returned a fresh payload. A live one-shot `run` on 8 explicit symbols (Yahoo, 2026-10-23) produced an `ok` snapshot (8 candidates, 0 confirmed rule triggers, 3 option underlyings qualified, 0 stale) and the loopback API returned 200 for GET and 405 for POST; `0.0.0.0` bind was refused. **Claude Code itself is not registered to this clone** (registration points to the older `~/tradeFlipper/mcp_server/run.sh`, scoped to that project).
+- **Known bugs, risks, blockers:** (1) `mcp_server/run.sh` does `cd` into this clone, so the backend's relative `./data/tradeflipper.db` and `.env` resolve against the clone, not TradeFlipper: `paper_portfolio` failed with `no such table: account` (empty DB created in the clone). Not fixed here (launcher change needs review); `deploy/run_opportunity_agent.sh` uses TradeFlipper as CWD. (2) `~/tradeFlipper/data/tradeflipper.db` was a 0-byte file when checked: TradeFlipper DB appears uninitialised, so `watchlist` scope and `paper_portfolio` are unverified. (3) No strategy has produced a confirmed trigger in any live scan so far; trigger paths are covered by fake signals only. (4) Yahoo option quote times/Greeks unavailable; contract freshness relies on last-trade age. (5) Overview HTTP API has no authentication (loopback only). (6) The root disk filled to 100% earlier in the session (freed ~8GB by removing two Rust `target/` dirs outside this repo).
+- **Deployment state:** local: branch in working tree and committed; GitHub: draft PR only (not merged); server: **no timer/service installed**, no MCP re-registration.
+- **Next 1-3 actionable tasks:** (a) fix/replace `run.sh` working-directory handling and verify `paper_portfolio` against an initialised TradeFlipper DB; (b) owner review, then install the systemd timer and register the v0.3 server for Claude Code; (c) add an authenticated, separately reviewed TradeFlipper Overview integration and earnings/event gates.
+- **Reproduction commands (redacted):** `TRADEFLIPPER_MCP_PYTHON=<venv python> deploy/run_opportunity_agent.sh --dir <scratch> run --symbols AAPL,TSLA`, then `show`; tests: `python -m pytest -q mcp_server/tests`.
+- **Secrets encountered:** none read or printed.
+
