@@ -1,0 +1,2 @@
+# Isolated MCP server dependency; existing backend requirements provide pandas/yfinance.
+mcp>=2,<3

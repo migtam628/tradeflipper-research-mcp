@@ -1,0 +1,19 @@
+# Never commit credentials, data or virtualenvs
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.sqlite
+*.sqlite3
+*.db
+secrets/
+credentials/
+.venv/
+.venv-mcp/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.py[cod]
+*.log
+.DS_Store
